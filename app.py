@@ -1,6 +1,7 @@
-from flask import Flask ,render_template,request,redirect
+from flask import Flask ,render_template,request,redirect,jsonify
 from flask_sqlalchemy import SQLAlchemy 
 from datetime import datetime
+from datetime import date
 
 app= Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI']="sqlite:///ToDo.db"
@@ -20,24 +21,40 @@ class Todo(db.Model):
         return f"{self.sno} -{self.title}"
     
 
-
-
-@app.route('/',methods=['GET','POST'])
-##above are the main steps
+@app.route('/', methods=['GET', 'POST'])
 def create_todo():
-   if request.method=='POST':
-       title=request.form['title']
-       content=request.form['content']
-       from_time=request.form['from_time']
-       to_time=request.form['To_time']
+    if request.method == 'POST':
+        title = request.form['title']
+        content = request.form['content']
+        from_time = request.form['from_time']
+        to_time = request.form['to_time']
+        date_created = request.form.get('date_created')  # safe access
 
+        if date_created:  # user selected a date
+            todo = Todo(
+                title=title,
+                content=content,
+                from_time=from_time,
+                to_time=to_time,
+                date_created=datetime.strptime(date_created, "%Y-%m-%d")
+            )
+        else:  # no date provided → use default (today)
+            todo = Todo(
+                title=title,
+                content=content,
+                from_time=from_time,
+                to_time=to_time
+            )
 
-       todo=Todo(title=title,content=content,from_time=from_time,to_time=to_time)
-       db.session.add(todo)
-       db.session.commit()
-   allTodo=Todo.query.all()
-   
-   return render_template('index.html',allTodo=allTodo)
+        db.session.add(todo)
+        db.session.commit()
+
+    # 🔹 Only fetch today's todos
+    today = date.today()
+    todays_todos = Todo.query.filter(db.func.date(Todo.date_created) == today).all()
+
+    return render_template('index.html', allTodo=todays_todos, today=today,datetime=datetime)
+
 
 @app.route('/delete/<int:sno>')
 def delete(sno):
@@ -66,6 +83,44 @@ def complete(sno):
         todo.completed = not todo.completed
         db.session.commit()
     return redirect('/')
+@app.route('/calendar')
+def calendar():
+    allTodo = Todo.query.all()
+    return render_template('calender.html', allTodo=allTodo)
+
+@app.route('/events')
+def events():
+    todos = Todo.query.all()
+    events = []
+    for t in todos:
+        events.append({
+            "title": t.title,
+            "start": t.date_created.strftime("%Y-%m-%d"),
+            "extendedProps": {
+                "description": t.content,
+                "from_time": t.from_time,
+                "to_time": t.to_time,
+                "completed":t.completed
+            }
+        })
+    return jsonify(events)
+@app.route('/todos_by_date/<date>')
+def todos_by_date(date):
+    # Parse the date string "YYYY-MM-DD"
+    selected_date = datetime.strptime(date, "%Y-%m-%d").date()
+    todos = Todo.query.filter(
+        db.func.date(Todo.date_created) == selected_date
+    ).all()
+    return jsonify([
+        {
+            "title": t.title,
+            "content": t.content,
+            "from_time": t.from_time,
+            "to_time": t.to_time
+        } for t in todos
+    ])
+
+
 ##to do flask run
 if __name__ =='__main__':
     app.run(debug=True)

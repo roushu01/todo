@@ -30,7 +30,14 @@
       </div>
       <div class="mb-3">
         <label for="content" class="form-label">Todo Description</label>
-        <input type="time" class="form-control" id="To_time" name="To_time" required />
+        <input type="time" class="form-control" id="to_time" name="to_time" required />
+      </div>
+      <div class="mb-3">
+        <label for="date_created" class="form-label">Date to complete the task</label>
+        
+        <input type="date" id="date_created" name="date_created"
+       value="{{ datetime.utcnow().strftime('%Y-%m-%d') }}">
+
       </div>
       <button type="submit" class="btn btn-primary">Submit</button>
     </form>
