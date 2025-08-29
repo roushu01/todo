@@ -4,6 +4,9 @@
     margin: 0 auto;     /* center it */
     height: 700px;      /* set calendar height */
   }
+  .fc-event-title {
+  text-align: left;
+}
 </style>
 {% extends "base.html" %}
 
@@ -23,7 +26,8 @@ document.addEventListener('DOMContentLoaded', function() {
     eventContent:function(info){
       let title=info.event.title;
       if(info.event.extendedProps.completed){
-        return { html: '<span style="text-decoration: line-through; color: white;font-size:1rem;">' + title + '</span>' };
+     
+        return { html: '<span style="text-decoration: line-through; color: white;font-size:1rem;background-color:green;">' + title + '</span>' };
       } else {
         return { html: '<span>' + title + '</span>' }; 
       }
@@ -42,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
             data.forEach(t => {
               let title=t.title;
               if(t.completed){
-                title=`<span style="text-decoration: line-through;color:white;font-size:1.2rm;">${t.title}</span>`;
+                title=`<span style="text-decoration: line-through;color:white;font-size:1.2rm;background-color:green;">${t.title}</span>`;
               }
               html += `<li class="list-group-item">
                          <strong>${t.title}</strong> (${t.from_time} - ${t.to_time})<br>

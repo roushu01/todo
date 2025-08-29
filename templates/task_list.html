@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="container mt-5">
+  <h1>{{ title if title else "My To-Do List" }}</h1>
+  {% if allTodo|length == 0 %}
+    <p>No tasks found</p>
+  {% else %}
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Completed</th>
+          <th>SNo</th>
+          <th>Title</th>
+          <th>Description</th>
+          <th>Date</th>
+          <th>From</th>
+          <th>To</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for todo in allTodo %}
+        <tr {% if todo.completed %}style="background-color:#e6ffe6"{% endif %}>
+          <td>
+            <form action="/complete/{{todo.sno}}" method="post">
+                <input type="hidden" name="next" value="{{ request.path }}">
+              <input type="checkbox" name="complete" onchange="this.form.submit()" {% if todo.completed %}checked{% endif %}>
+            </form>
+          </td>
+          <td>{{ loop.index }}</td>
+          <td>{{ todo.title }}</td>
+          <td>{{ todo.content }}</td>
+          <td>{{ todo.date_created.strftime('%Y-%m-%d') }}</td>
+          <td>{{ todo.from_time }}</td>
+          <td>{{ todo.to_time }}</td>
+          <td>
+            <a href="/delete/{{ todo.sno }}" class="btn btn-outline-dark btn-sm">Delete</a>
+            <a href="/update/{{ todo.sno }}" class="btn btn-outline-info btn-sm">Update</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</div>
+{% endblock %}

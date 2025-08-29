@@ -7,14 +7,25 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
-
+<style>
+  body {
+    background-color: #f8f9fa;
+  }
+  .form{
+    width: 100px;
+    margin: auto;
+    padding: 20px;
+    background-color: white;}
+</style>
 <body>
   {% extends "base.html"%}
 
   {% block body %}
 
-  <div class="container mt-5">
+  <div class="container mt-2 form">
+    <div class="form-box">
     <h1>Add To Do</h1>
+
     <form action="/" method="POST">
       <div class="mb-3">
         <label for="title" class="form-label">Add Title</label>
@@ -42,52 +53,9 @@
       <button type="submit" class="btn btn-primary">Submit</button>
     </form>
   </div>
-
-  <div class="container mt-5">
-    {% if allTodo|length == 0 %}
-      <p>No record found</p>
-    {% else %}
-      <h1>My To-Do</h1>
-      <table class="table">
-        <thead>
-          <tr>
-            <th scope="col">Completed
-            <th scope="col">SNo</th>
-            <th scope="col">Title</th>
-            <th scope="col">Description</th>
-            <th scope="col">Date</th>
-            <th scope="col">From(time)</th>
-            <th scope="col">To(Time)</th>
-            <th scope="col">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for todo in allTodo %}
-          <tr>
-            <td>
-              <form action="/complete/{{todo.sno}}" method="post">
-                <input type="checkbox" name="complete" onchange="this.form.submit()"
-                {% if todo.completed%}checked{%endif%}>
-              </form>
-            </td>
-
-            <th scope="row">{{ loop.index }}</th>
-            <td>{{ todo.title }}</td>
-            <td>{{ todo.content }}</td>
-            <td>{{ todo.date_created }}</td>
-            <td>{{ todo.from_time }}</td>
-            <td>{{ todo.to_time}}</td>
-            <td>
-              <a href="/delete/{{ todo.sno }}" class="btn btn-outline-dark btn-sm mx-1">Delete</a>
-              <a href="/update/{{ todo.sno }}" class="btn btn-outline-info btn-sm mx-1">Update</a>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    {% endif %}
   </div>
 
+  <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js'></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

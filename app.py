@@ -1,4 +1,4 @@
-from flask import Flask ,render_template,request,redirect,jsonify
+from flask import Flask ,render_template,request,redirect,jsonify,url_for,flash
 from flask_sqlalchemy import SQLAlchemy 
 from datetime import datetime
 from datetime import date
@@ -55,15 +55,22 @@ def create_todo():
 
     return render_template('index.html', allTodo=todays_todos, today=today,datetime=datetime)
 
-
+# Delete a todo item
 @app.route('/delete/<int:sno>')
 def delete(sno):
+    if todo.date_created.date()<date.today():
+            flash("Cannot change status of past tasks","warning")
+    
     todo=Todo.query.filter_by(sno=sno).first()
     db.session.delete(todo)
     db.session.commit()
     return redirect("/")
+
+# Update a todo item
 @app.route('/update/<int:sno>',methods=['GET','POST'])
 def update(sno):
+   if todo.date_created.date()<date.today():
+            flash("Cannot change status of past tasks","warning")
    if request.method=='POST':
        title=request.form['title']
        content=request.form['content']
@@ -76,13 +83,22 @@ def update(sno):
        return redirect("/")
    todo=Todo.query.filter_by(sno=sno).first()
    return render_template('update.html',todo=todo)
+
+# Toggle completion status
 @app.route('/complete/<int:sno>', methods=['POST'])
 def complete(sno):
     todo = Todo.query.filter_by(sno=sno).first()
     if todo:
+        if todo.date_created.date()<date.today():
+            flash("Cannot change status of past tasks","warning")
         todo.completed = not todo.completed
         db.session.commit()
-    return redirect('/')
+    #Redirect back to the page where the request came from
+    # Using request.referrer to get the previous page URL
+    next_page=request.form.get('next')
+    if not next_page:
+        next_page = url_for("create_todo")    
+    return redirect(next_page)
 @app.route('/calendar')
 def calendar():
     allTodo = Todo.query.all()
@@ -101,7 +117,10 @@ def events():
                 "from_time": t.from_time,
                 "to_time": t.to_time,
                 "completed":t.completed
-            }
+            },
+             "color": "green" if t.completed else "navy blue",
+            "textColor": "white",
+            "borderColor":"white"
         })
     return jsonify(events)
 @app.route('/todos_by_date/<date>')
@@ -119,6 +138,19 @@ def todos_by_date(date):
             "to_time": t.to_time
         } for t in todos
     ])
+@app.route('/tasks')
+def task_list():
+    allTodo = Todo.query.all()
+    return render_template('task_list.html', allTodo=allTodo)
+@app.route('/pending')
+def pending_tasks():
+    todos = Todo.query.filter_by(completed=False).all()
+    return render_template('task_list.html', allTodo=todos, title="Pending Tasks")
+
+@app.route('/completed')
+def completed_tasks():
+    todos = Todo.query.filter_by(completed=True).all()
+    return render_template('task_list.html', allTodo=todos, title="Completed Tasks")
 
 
 ##to do flask run
