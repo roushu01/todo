@@ -34,8 +34,14 @@
           <td>{{ todo.from_time }}</td>
           <td>{{ todo.to_time }}</td>
           <td>
-            <a href="/delete/{{ todo.sno }}" class="btn btn-outline-dark btn-sm">Delete</a>
-            <a href="/update/{{ todo.sno }}" class="btn btn-outline-info btn-sm">Update</a>
+              {% if todo.date_created.date() < date.today() %}
+      <!-- Disable buttons for past tasks -->
+      <button class="btn btn-secondary btn-sm mx-1" disabled>Delete</button>
+      <button class="btn btn-secondary btn-sm mx-1" disabled>Update</button>
+    {% else %}
+      <a href="/delete/{{ todo.sno }}" class="btn btn-outline-dark btn-sm mx-1">Delete</a>
+      <a href="/update/{{ todo.sno }}" class="btn btn-outline-info btn-sm mx-1">Update</a>
+    {% endif %}
           </td>
         </tr>
         {% endfor %}

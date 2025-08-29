@@ -1,25 +1,34 @@
-from flask import Flask ,render_template,request,redirect,jsonify,url_for,flash
+from flask import Flask, render_template, request, redirect, jsonify, url_for, flash
 from flask_sqlalchemy import SQLAlchemy 
-from datetime import datetime
-from datetime import date
+from datetime import datetime, date
+import secrets   # for generating secure key
 
-app= Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI']="sqlite:///ToDo.db"
-db=SQLAlchemy(app)
+app = Flask(__name__)
+
+# ✅ Secret key (needed for flash + sessions)
+app.secret_key = secrets.token_hex(16)   # generates a random secure key each run
+# If you want it permanent, replace with a fixed string, e.g. "my_super_secret_key"
+
+# Database config
+app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///ToDo.db"
+db = SQLAlchemy(app)
+
 
 # Create a database model for the Todo item
 class Todo(db.Model):
-    sno=db.Column(db.Integer, primary_key=True)
-    content=db.Column(db.String(500), nullable=False)
-    title=db.Column(db.String(200), nullable=False)
-    date_created=db.Column(db.DateTime ,default=datetime.utcnow)
-    from_time=db.Column(db.String(50),nullable=False)
-    to_time=db.Column(db.String(50),nullable=False)
-    completed=db.Column(db.Boolean,default=False)
-# it is for the database to know how to represent the object
-    def __repr__(self)->str:
-        return f"{self.sno} -{self.title}"
-    
+    sno = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.String(500), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
+    date_created = db.Column(db.DateTime, default=datetime.utcnow)
+    from_time = db.Column(db.String(50), nullable=False)
+    to_time = db.Column(db.String(50), nullable=False)
+    completed = db.Column(db.Boolean, default=False)
+
+    def __repr__(self) -> str:
+        return f"{self.sno} - {self.title}"
+
+
+# ----------------- Routes -----------------
 
 @app.route('/', methods=['GET', 'POST'])
 def create_todo():
@@ -28,9 +37,9 @@ def create_todo():
         content = request.form['content']
         from_time = request.form['from_time']
         to_time = request.form['to_time']
-        date_created = request.form.get('date_created')  # safe access
+        date_created = request.form.get('date_created')  
 
-        if date_created:  # user selected a date
+        if date_created:
             todo = Todo(
                 title=title,
                 content=content,
@@ -38,7 +47,7 @@ def create_todo():
                 to_time=to_time,
                 date_created=datetime.strptime(date_created, "%Y-%m-%d")
             )
-        else:  # no date provided → use default (today)
+        else:
             todo = Todo(
                 title=title,
                 content=content,
@@ -49,60 +58,60 @@ def create_todo():
         db.session.add(todo)
         db.session.commit()
 
-    # 🔹 Only fetch today's todos
     today = date.today()
     todays_todos = Todo.query.filter(db.func.date(Todo.date_created) == today).all()
+    return render_template('index.html', allTodo=todays_todos, today=today, datetime=datetime)
 
-    return render_template('index.html', allTodo=todays_todos, today=today,datetime=datetime)
 
-# Delete a todo item
+# Delete a todo
 @app.route('/delete/<int:sno>')
 def delete(sno):
-    if todo.date_created.date()<date.today():
-            flash("Cannot change status of past tasks","warning")
-    
-    todo=Todo.query.filter_by(sno=sno).first()
+    todo = Todo.query.filter_by(sno=sno).first()
+    if todo and todo.date_created.date() < date.today():
+        flash("❌ Cannot delete past tasks!", "warning")
+        return redirect(request.referrer or url_for("create_todo"))
     db.session.delete(todo)
     db.session.commit()
     return redirect("/")
 
-# Update a todo item
-@app.route('/update/<int:sno>',methods=['GET','POST'])
+
+# Update a todo
+@app.route('/update/<int:sno>', methods=['GET','POST'])
 def update(sno):
-   if todo.date_created.date()<date.today():
-            flash("Cannot change status of past tasks","warning")
-   if request.method=='POST':
-       title=request.form['title']
-       content=request.form['content']
+    todo = Todo.query.filter_by(sno=sno).first()
+    if todo.date_created.date() < date.today():
+        flash("❌ Cannot update past tasks!", "warning")
+        return redirect(request.referrer or url_for("create_todo"))
 
-       todo=Todo.query.filter_by(sno=sno).first()
-       todo.title=title
-       todo.content=content
-       db.session.add(todo)
-       db.session.commit()
-       return redirect("/")
-   todo=Todo.query.filter_by(sno=sno).first()
-   return render_template('update.html',todo=todo)
+    if request.method == 'POST':
+        todo.title = request.form['title']
+        todo.content = request.form['content']
+        db.session.commit()
+        return redirect("/")
+    return render_template('update.html', todo=todo)
 
-# Toggle completion status
+
+# Toggle completion
 @app.route('/complete/<int:sno>', methods=['POST'])
 def complete(sno):
     todo = Todo.query.filter_by(sno=sno).first()
+    if todo and todo.date_created.date() < date.today():
+        flash("❌ Cannot change status of past tasks!", "warning")
+        return redirect(request.referrer or url_for("create_todo"))
+
     if todo:
-        if todo.date_created.date()<date.today():
-            flash("Cannot change status of past tasks","warning")
         todo.completed = not todo.completed
         db.session.commit()
-    #Redirect back to the page where the request came from
-    # Using request.referrer to get the previous page URL
-    next_page=request.form.get('next')
-    if not next_page:
-        next_page = url_for("create_todo")    
-    return redirect(next_page)
+
+    return redirect(request.referrer or url_for("create_todo"))
+
+
+# Calendar
 @app.route('/calendar')
 def calendar():
     allTodo = Todo.query.all()
     return render_template('calender.html', allTodo=allTodo)
+
 
 @app.route('/events')
 def events():
@@ -116,20 +125,19 @@ def events():
                 "description": t.content,
                 "from_time": t.from_time,
                 "to_time": t.to_time,
-                "completed":t.completed
+                "completed": t.completed
             },
-             "color": "green" if t.completed else "navy blue",
+            "color": "green" if t.completed else "navy",
             "textColor": "white",
-            "borderColor":"white"
+            "borderColor": "white"
         })
     return jsonify(events)
+
+
 @app.route('/todos_by_date/<date>')
 def todos_by_date(date):
-    # Parse the date string "YYYY-MM-DD"
     selected_date = datetime.strptime(date, "%Y-%m-%d").date()
-    todos = Todo.query.filter(
-        db.func.date(Todo.date_created) == selected_date
-    ).all()
+    todos = Todo.query.filter(db.func.date(Todo.date_created) == selected_date).all()
     return jsonify([
         {
             "title": t.title,
@@ -138,23 +146,39 @@ def todos_by_date(date):
             "to_time": t.to_time
         } for t in todos
     ])
+
+
 @app.route('/tasks')
 def task_list():
     allTodo = Todo.query.all()
-    return render_template('task_list.html', allTodo=allTodo)
+    return render_template('task_list.html', allTodo=allTodo,date=date)
+
+
 @app.route('/pending')
 def pending_tasks():
     todos = Todo.query.filter_by(completed=False).all()
-    return render_template('task_list.html', allTodo=todos, title="Pending Tasks")
+    return render_template('task_list.html', allTodo=todos, title="Pending Tasks",date=date)
+
 
 @app.route('/completed')
 def completed_tasks():
     todos = Todo.query.filter_by(completed=True).all()
-    return render_template('task_list.html', allTodo=todos, title="Completed Tasks")
+    return render_template('task_list.html', allTodo=todos, title="Completed Tasks",date=date)
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get("username")
+        password = request.form.get("password")
 
-##to do flask run
-if __name__ =='__main__':
+        # Example check (replace with DB lookup later)
+        if username == "admin" and password == "1234":
+            flash("Login successful!", "success")
+            return redirect(url_for("create_todo"))  # go to home page
+        else:
+            flash("Invalid credentials!", "error")
+
+    return render_template("Signup.html") 
+# ----------------- Run -----------------
+if __name__ == '__main__':
     app.run(debug=True)
-
-
