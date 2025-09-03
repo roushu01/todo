@@ -27,7 +27,7 @@
             <div class="forget-link">
                 <a href="#">Forgot password?</a>
             </div>
-                <button type="submit" class="mybtn">Sign Up</button>
+                <button type="submit" class="mybtn">Login</button>
             </form>
             <p>or login with social platform</p>
             <div class="social-icons">
@@ -61,6 +61,23 @@
                 <a href="#"><i class='bx bxl-github' ></i></a>
             </div>    
         </div>
+
+
         <div class="toggle-box">
-            <div class="toggle-panel toggle-left"
+            <div class="toggle-panel toggle-left">
+                <h1>Hello, Welcome!</h1>
+                <p>Don't have an account</p>
+                <button class="btn register-btn" id="show-register">Register</button>
+            </div>
+            <div class="toggle-panel toggle-right">
+                <h1>Welcome Back!</h1>
+                <p>Already have an account</p>
+                <button class="btn login-btn" id="show-login">Login</button>
+            </div>    
+
+        </div>        
     </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body> 
+</html>
